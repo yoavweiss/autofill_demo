@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Autofill Event Handler Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            min-height: calc(100vh - 40px);
+        }
+
+        .demo-section {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .form-section {
+            max-height: calc(100vh - 80px);
+            overflow-y: auto;
+        }
+
+        .log-section {
+            background: #1a1a1a;
+            color: #e0e0e0;
+            max-height: calc(100vh - 80px);
+            overflow-y: auto;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2rem;
+            font-weight: 600;
+        }
+
+        h2 {
+            color: #555;
+            margin-bottom: 20px;
+            font-size: 1.2rem;
+            font-weight: 500;
+        }
+
+        .log-section h1,
+        .log-section h2 {
+            color: #e0e0e0;
+        }
+
+        .description {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin-bottom: 25px;
+            border-radius: 0 8px 8px 0;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.2s ease;
+            background: white;
+        }
+
+        input[type="text"]:focus,
+        input[type="email"]:focus,
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .autofilled {
+            border-color: #10b981 !important;
+            background-color: #f0fdf4 !important;
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1) !important;
+        }
+
+        .modified-by-event {
+            border-color: #f59e0b !important;
+            background-color: #fffbeb !important;
+            box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1) !important;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5a67d8;
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #4a5568;
+        }
+
+        .btn-secondary:hover {
+            background: #cbd5e0;
+        }
+
+        .btn-danger {
+            background: #f56565;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #e53e3e;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-left: 10px;
+        }
+
+        .status-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .status-warning {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .status-info {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .log-container {
+            height: 400px;
+            overflow-y: auto;
+            background: #2d2d2d;
+            border-radius: 8px;
+            padding: 15px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.85rem;
+            line-height: 1.4;
+        }
+
+        .log-entry {
+            margin-bottom: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid #404040;
+        }
+
+        .log-timestamp {
+            color: #888;
+            font-size: 0.8rem;
+        }
+
+        .log-event {
+            color: #4ade80;
+            font-weight: bold;
+        }
+
+        .log-data {
+            color: #fbbf24;
+            margin-left: 20px;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .log-error {
+            color: #f87171;
+        }
+
+        .state-panel {
+            background: #374151;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .state-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+
+        .state-value {
+            color: #10b981;
+            font-weight: bold;
+        }
+
+        .legend {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            font-size: 0.85rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+            margin-right: 10px;
+            border: 2px solid;
+        }
+
+        .legend-color.autofilled {
+            background: #f0fdf4;
+            border-color: #10b981;
+        }
+
+        .legend-color.modified {
+            background: #fffbeb;
+            border-color: #f59e0b;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .demo-section {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Form Section -->
+        <div class="demo-section form-section">
+            <h1>Autofill Event Demo</h1>
+            <h2>Personal Information Form</h2>
+            
+            <div class="description">
+                <strong>How to test:</strong> Use Chrome's autofill feature to fill this form. 
+                The <code>onautofill</code> event will fire and you can see the event data and 
+                form modifications in real-time on the right panel.
+            </div>
+
+            <form id="demoform" method="post" onautofill="handleAutofillEvent(event)">
+                <div class="form-group">
+                    <label for="NAME_FIRST">First Name</label>
+                    <input type="text" id="NAME_FIRST" name="firstname" autocomplete="given-name" placeholder="Enter your first name">
+                </div>
+
+                <div class="form-group">
+                    <label for="NAME_LAST">Last Name</label>
+                    <input type="text" id="NAME_LAST" name="lastname" autocomplete="family-name" placeholder="Enter your last name">
+                </div>
+
+                <div class="form-group">
+                    <label for="EMAIL_ADDRESS">Email Address</label>
+                    <input type="email" id="EMAIL_ADDRESS" name="email" autocomplete="email" placeholder="Enter your email">
+                </div>
+
+                <div class="form-group">
+                    <label for="ADDRESS_HOME_LINE1">Street Address</label>
+                    <input type="text" id="ADDRESS_HOME_LINE1" name="address" autocomplete="address-line1" placeholder="Enter your address">
+                </div>
+
+                <div class="form-group">
+                    <label for="ADDRESS_HOME_CITY">City</label>
+                    <input type="text" id="ADDRESS_HOME_CITY" name="city" autocomplete="address-level2" placeholder="Enter your city">
+                </div>
+
+                <div class="form-group">
+                    <label for="ADDRESS_HOME_STATE">State/Province</label>
+                    <input type="text" id="ADDRESS_HOME_STATE" name="state" autocomplete="address-level1" placeholder="Enter your state">
+                </div>
+
+                <div class="form-group">
+                    <label for="ADDRESS_HOME_ZIP">ZIP/Postal Code</label>
+                    <input type="text" id="ADDRESS_HOME_ZIP" name="zipcode" autocomplete="postal-code" placeholder="Enter your ZIP code">
+                </div>
+
+                <div class="form-group">
+                    <label for="ADDRESS_HOME_COUNTRY">
+                        Country 
+                        <span class="status-indicator status-warning" id="country-status" style="display: none;">Modified by Event</span>
+                    </label>
+                    <select id="ADDRESS_HOME_COUNTRY" name="country" autocomplete="country">
+                        <option value="">Select Country</option>
+                        <option value="US">United States</option>
+                        <option value="CA">Canada</option>
+                        <option value="GB">United Kingdom</option>
+                        <option value="DE">Germany</option>
+                        <option value="FR">France</option>
+                        <option value="JP">Japan</option>
+                        <option value="AU">Australia</option>
+                    </select>
+                </div>
+
+                <div class="buttons">
+                    <button type="submit" class="btn-primary">Submit Form</button>
+                    <button type="reset" class="btn-secondary">Reset Form</button>
+                    <button type="button" class="btn-danger" onclick="clearEverything()">Clear All</button>
+                </div>
+            </form>
+
+            <div class="legend">
+                <h3 style="margin-bottom: 12px; color: #333;">Field Color Legend</h3>
+                <div class="legend-item">
+                    <div class="legend-color autofilled"></div>
+                    <span>Fields filled by autofill</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color modified"></div>
+                    <span>Fields modified by event handler</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Logging Section -->
+        <div class="demo-section log-section">
+            <h1>Event Monitor</h1>
+            <h2>Real-time Autofill Event Tracking</h2>
+
+            <div class="state-panel">
+                <h3 style="margin-bottom: 15px; color: #e0e0e0;">Current State</h3>
+                <div class="state-item">
+                    <span>Event Fired:</span>
+                    <span class="state-value" id="state-event-fired">false</span>
+                </div>
+                <div class="state-item">
+                    <span>Field Data Received:</span>
+                    <span class="state-value" id="state-field-data">0 fields</span>
+                </div>
+                <div class="state-item">
+                    <span>prepareForm() Called:</span>
+                    <span class="state-value" id="state-prepare-form">false</span>
+                </div>
+                <div class="state-item">
+                    <span>Promise Resolved:</span>
+                    <span class="state-value" id="state-promise-resolved">false</span>
+                </div>
+                <div class="state-item">
+                    <span>Form Modified:</span>
+                    <span class="state-value" id="state-form-modified">false</span>
+                </div>
+                <div class="state-item">
+                    <span>Autofill Completed:</span>
+                    <span class="state-value" id="state-autofill-completed">false</span>
+                </div>
+            </div>
+
+            <h3 style="margin-bottom: 15px; color: #e0e0e0;">Event Log</h3>
+            <div class="log-container" id="log-container">
+                <div class="log-entry">
+                    <div class="log-timestamp">[Ready]</div>
+                    <div class="log-event">Demo initialized. Waiting for autofill events...</div>
+                </div>
+            </div>
+
+            <div class="buttons" style="margin-top: 20px;">
+                <button type="button" class="btn-secondary" onclick="clearLog()">Clear Log</button>
+                <button type="button" class="btn-secondary" onclick="exportLog()">Export Log</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Enhanced state tracking for the demo
+        window.demoState = {
+            eventFired: false,
+            eventData: null,
+            prepareFormCalled: false,
+            prepareFormPromiseResolved: false,
+            autofillCompleted: false,
+            formModified: false,
+            errors: [],
+            logs: [],
+            startTime: Date.now()
+        };
+
+        // Logging functionality
+        function log(type, message, data = null) {
+            const timestamp = new Date().toLocaleTimeString();
+            const entry = {
+                timestamp,
+                type,
+                message,
+                data,
+                time: Date.now() - window.demoState.startTime
+            };
+            
+            window.demoState.logs.push(entry);
+            
+            const logContainer = document.getElementById('log-container');
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-entry';
+            
+            let logClass = '';
+            if (type === 'error') logClass = 'log-error';
+            else if (type === 'event') logClass = 'log-event';
+            
+            logEntry.innerHTML = `
+                <div class="log-timestamp">[${timestamp}] (+${entry.time}ms)</div>
+                <div class="${logClass}">${message}</div>
+                ${data ? `<div class="log-data">${JSON.stringify(data, null, 2)}</div>` : ''}
+            `;
+            
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        function updateStateDisplay() {
+            document.getElementById('state-event-fired').textContent = window.demoState.eventFired;
+            document.getElementById('state-field-data').textContent = 
+                window.demoState.eventData ? `${window.demoState.eventData.length} fields` : '0 fields';
+            document.getElementById('state-prepare-form').textContent = window.demoState.prepareFormCalled;
+            document.getElementById('state-promise-resolved').textContent = window.demoState.prepareFormPromiseResolved;
+            document.getElementById('state-form-modified').textContent = window.demoState.formModified;
+            document.getElementById('state-autofill-completed').textContent = window.demoState.autofillCompleted;
+        }
+
+        // Main autofill event handler
+        function handleAutofillEvent(event) {
+            log('event', '🎯 Autofill event fired!');
+            window.demoState.eventFired = true;
+
+            try {
+                // Get field data from the event
+                const fieldData = event.fieldData();
+                window.demoState.eventData = fieldData;
+                
+                log('info', `📋 Received field data for ${fieldData.length} fields`, 
+                    fieldData.map(f => ({ fieldId: f.fieldId, value: f.value, autocompleteAttribute: f.autocompleteAttribute })));
+
+                // Create a promise that modifies the form
+                const promise = new Promise((resolve) => {
+                    log('info', '⏳ Creating prepareForm promise with 500ms delay...');
+                    
+                    setTimeout(() => {
+                        log('info', '🔧 Promise executing - modifying country field...');
+                        
+                        // Modify country field based on autofill data or set default
+                        const countryField = document.getElementById('ADDRESS_HOME_COUNTRY');
+                        if (countryField) {
+                            const oldValue = countryField.value;
+                            
+                            // Smart country selection based on autofill data
+                            let newCountry = 'US'; // default
+                            
+                            // Look for country hints in the field data
+                            const addressFields = fieldData.filter(f => 
+                                f.autocompleteAttribute && f.autocompleteAttribute.includes('address'));
+                            
+                            if (addressFields.length > 0) {
+                                // Simple heuristic based on common patterns
+                                const allText = addressFields.map(f => f.value).join(' ').toLowerCase();
+                                if (allText.includes('canada') || allText.includes('toronto') || allText.includes('vancouver')) {
+                                    newCountry = 'CA';
+                                } else if (allText.includes('london') || allText.includes('manchester')) {
+                                    newCountry = 'GB';
+                                } else if (allText.includes('paris') || allText.includes('lyon')) {
+                                    newCountry = 'FR';
+                                }
+                            }
+                            
+                            countryField.value = newCountry;
+                            countryField.classList.add('modified-by-event');
+                            
+                            const statusIndicator = document.getElementById('country-status');
+                            statusIndicator.style.display = 'inline-block';
+                            
+                            window.demoState.formModified = true;
+                            
+                            log('success', `🌍 Country field modified: "${oldValue}" → "${newCountry}"`);
+                        }
+
+                        window.demoState.prepareFormPromiseResolved = true;
+                        log('success', '✅ prepareForm promise resolved');
+                        updateStateDisplay();
+                        resolve();
+                    }, 500);
+                });
+
+                // Call prepareForm with our promise
+                event.prepareForm(promise);
+                window.demoState.prepareFormCalled = true;
+                log('info', '📞 prepareForm() method called with promise');
+                
+            } catch (error) {
+                log('error', '❌ Error in autofill event handler', error.toString());
+                window.demoState.errors.push(error.toString());
+            }
+            
+            updateStateDisplay();
+        }
+
+        // Monitor form changes to detect autofill completion
+        document.getElementById('demoform').addEventListener('input', function(e) {
+            if (window.demoState.prepareFormPromiseResolved && !window.demoState.autofillCompleted) {
+                window.demoState.autofillCompleted = true;
+                log('success', '🎉 Autofill completed successfully!');
+                
+                // Highlight autofilled fields
+                const form = document.getElementById('demoform');
+                const inputs = form.querySelectorAll('input[type="text"], input[type="email"]');
+                inputs.forEach(input => {
+                    if (input.value && !input.classList.contains('modified-by-event')) {
+                        input.classList.add('autofilled');
+                    }
+                });
+                
+                updateStateDisplay();
+            }
+        });
+
+        // Reset form and clear visual indicators
+        document.getElementById('demoform').addEventListener('reset', function() {
+            setTimeout(() => {
+                clearVisualIndicators();
+                log('info', '🔄 Form reset');
+            }, 10);
+        });
+
+        function clearVisualIndicators() {
+            const form = document.getElementById('demoform');
+            const inputs = form.querySelectorAll('input, select');
+            inputs.forEach(input => {
+                input.classList.remove('autofilled', 'modified-by-event');
+            });
+            
+            const statusIndicator = document.getElementById('country-status');
+            statusIndicator.style.display = 'none';
+        }
+
+        function clearEverything() {
+            // Reset form
+            document.getElementById('demoform').reset();
+            
+            // Clear visual indicators
+            clearVisualIndicators();
+            
+            // Reset state
+            window.demoState = {
+                eventFired: false,
+                eventData: null,
+                prepareFormCalled: false,
+                prepareFormPromiseResolved: false,
+                autofillCompleted: false,
+                formModified: false,
+                errors: [],
+                logs: [],
+                startTime: Date.now()
+            };
+            
+            // Clear log
+            clearLog();
+            
+            // Update display
+            updateStateDisplay();
+            
+            log('info', '🧹 Everything cleared and reset');
+        }
+
+        function clearLog() {
+            const logContainer = document.getElementById('log-container');
+            logContainer.innerHTML = '<div class="log-entry"><div class="log-timestamp">[Ready]</div><div class="log-event">Log cleared. Ready for new events...</div></div>';
+            window.demoState.logs = [];
+        }
+
+        function exportLog() {
+            const logData = {
+                timestamp: new Date().toISOString(),
+                state: window.demoState,
+                userAgent: navigator.userAgent
+            };
+            
+            const blob = new Blob([JSON.stringify(logData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `autofill-demo-log-${Date.now()}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            log('info', '📁 Log exported to file');
+        }
+
+        // Initialize
+        updateStateDisplay();
+        log('info', '🚀 Autofill Event Demo initialized and ready');
+    </script>
+</body>
+</html>
