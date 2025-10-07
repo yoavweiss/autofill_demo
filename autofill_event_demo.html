@@ -187,6 +187,11 @@
             color: white;
         }
 
+        .status-error {
+            background: #ef4444;
+            color: white;
+        }
+
         .log-container {
             height: 400px;
             overflow-y: auto;
@@ -374,7 +379,10 @@
                 </div>
                 <div class="legend-item">
                     <div class="legend-color modified"></div>
-                    <span>Fields modified by event handler</span>
+                    <span>Fields added/modified by event handler</span>
+                </div>
+                <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #e1e5e9; font-size: 0.8rem; color: #666;">
+                    <strong>Note:</strong> The dynamic region field appears only when US or Canadian addresses are detected.
                 </div>
             </div>
         </div>
@@ -386,6 +394,12 @@
 
             <div class="state-panel">
                 <h3 style="margin-bottom: 15px; color: #e0e0e0;">Current State</h3>
+                <div class="state-item">
+                    <span>AutofillEvent Support:</span>
+                    <span class="state-value" id="state-autofill-support">
+                        <span class="status-indicator" id="support-indicator">Checking...</span>
+                    </span>
+                </div>
                 <div class="state-item">
                     <span>Event Fired:</span>
                     <span class="state-value" id="state-event-fired">false</span>
@@ -430,6 +444,7 @@
     <script>
         // Enhanced state tracking for the demo
         window.demoState = {
+            autofillSupported: false,
             eventFired: false,
             eventData: null,
             prepareFormCalled: false,
@@ -473,6 +488,16 @@
         }
 
         function updateStateDisplay() {
+            // Update support indicator
+            const supportIndicator = document.getElementById('support-indicator');
+            if (window.demoState.autofillSupported) {
+                supportIndicator.textContent = 'Supported';
+                supportIndicator.className = 'status-indicator status-success';
+            } else {
+                supportIndicator.textContent = 'Not Supported';
+                supportIndicator.className = 'status-indicator status-error';
+            }
+            
             document.getElementById('state-event-fired').textContent = window.demoState.eventFired;
             document.getElementById('state-field-data').textContent = 
                 window.demoState.eventData ? `${window.demoState.eventData.length} fields` : '0 fields';
@@ -500,41 +525,100 @@
                     log('info', '⏳ Creating prepareForm promise with 500ms delay...');
                     
                     setTimeout(() => {
-                        log('info', '🔧 Promise executing - modifying country field...');
+                        log('info', '🔧 Promise executing - adding dynamic region field...');
                         
-                        // Modify country field based on autofill data or set default
-                        const countryField = document.getElementById('ADDRESS_HOME_COUNTRY');
-                        if (countryField) {
-                            const oldValue = countryField.value;
-                            
-                            // Smart country selection based on autofill data
-                            let newCountry = 'US'; // default
-                            
-                            // Look for country hints in the field data
-                            const addressFields = fieldData.filter(f => 
-                                f.autocompleteAttribute && f.autocompleteAttribute.includes('address'));
-                            
-                            if (addressFields.length > 0) {
-                                // Simple heuristic based on common patterns
-                                const allText = addressFields.map(f => f.value).join(' ').toLowerCase();
-                                if (allText.includes('canada') || allText.includes('toronto') || allText.includes('vancouver')) {
-                                    newCountry = 'CA';
-                                } else if (allText.includes('london') || allText.includes('manchester')) {
-                                    newCountry = 'GB';
-                                } else if (allText.includes('paris') || allText.includes('lyon')) {
-                                    newCountry = 'FR';
-                                }
+                        // Detect country from autofill data
+                        let detectedCountry = null;
+                        let regionValue = '';
+                        
+                        // Look for country hints in the field data
+                        const addressFields = fieldData.filter(f => 
+                            f.autocompleteAttribute && f.autocompleteAttribute.includes('address'));
+                        
+                        if (addressFields.length > 0) {
+                            // Simple heuristic based on common patterns
+                            const allText = addressFields.map(f => f.value).join(' ').toLowerCase();
+                            if (allText.includes('canada') || allText.includes('toronto') || allText.includes('vancouver')) {
+                                detectedCountry = 'CA';
+                            } else if (allText.includes('united states') || allText.includes('usa') || allText.includes('new york') || allText.includes('california')) {
+                                detectedCountry = 'US';
+                            }
+                        }
+                        
+                        // Also check if there's a state/province field in the autofill data
+                        const stateField = fieldData.find(f => 
+                            f.autocompleteAttribute === 'address-level1' || 
+                            f.fieldId === 'ADDRESS_HOME_STATE');
+                        
+                        if (stateField && stateField.value) {
+                            regionValue = stateField.value;
+                        }
+                        
+                        // Add dynamic field if we detected a country
+                        if (detectedCountry && (detectedCountry === 'CA' || detectedCountry === 'US')) {
+                            // Check if field already exists (avoid duplicates)
+                            let existingField = document.getElementById('DYNAMIC_REGION');
+                            if (existingField) {
+                                existingField.parentElement.remove();
                             }
                             
-                            countryField.value = newCountry;
-                            countryField.classList.add('modified-by-event');
+                            // Create the dynamic field group
+                            const dynamicGroup = document.createElement('div');
+                            dynamicGroup.className = 'form-group';
+                            dynamicGroup.id = 'dynamic-region-group';
                             
-                            const statusIndicator = document.getElementById('country-status');
+                            // Create label with status indicator
+                            const label = document.createElement('label');
+                            label.setAttribute('for', 'DYNAMIC_REGION');
+                            
+                            const labelText = document.createElement('span');
+                            labelText.id = 'dynamic-region-label';
+                            
+                            const statusIndicator = document.createElement('span');
+                            statusIndicator.className = 'status-indicator status-info';
+                            statusIndicator.id = 'dynamic-region-status';
+                            statusIndicator.textContent = 'Added by Event';
                             statusIndicator.style.display = 'inline-block';
+                            
+                            label.appendChild(labelText);
+                            label.appendChild(statusIndicator);
+                            
+                            // Create input field
+                            const dynamicField = document.createElement('input');
+                            dynamicField.type = 'text';
+                            dynamicField.id = 'DYNAMIC_REGION';
+                            dynamicField.name = 'dynamic_region';
+                            dynamicField.classList.add('modified-by-event');
+                            
+                            // Set appropriate label and placeholder based on country
+                            if (detectedCountry === 'CA') {
+                                labelText.textContent = 'Province';
+                                dynamicField.placeholder = 'Detected Canadian province';
+                            } else if (detectedCountry === 'US') {
+                                labelText.textContent = 'State';
+                                dynamicField.placeholder = 'Detected US state';
+                            }
+                            
+                            // Set the value if we have one
+                            if (regionValue) {
+                                dynamicField.value = regionValue;
+                            } else {
+                                dynamicField.value = `Detected: ${detectedCountry === 'CA' ? 'Canada' : 'United States'}`;
+                            }
+                            
+                            // Assemble the field group
+                            dynamicGroup.appendChild(label);
+                            dynamicGroup.appendChild(dynamicField);
+                            
+                            // Insert after the existing State/Province field
+                            const stateFieldGroup = document.getElementById('ADDRESS_HOME_STATE').parentElement;
+                            stateFieldGroup.parentNode.insertBefore(dynamicGroup, stateFieldGroup.nextSibling);
                             
                             window.demoState.formModified = true;
                             
-                            log('success', `🌍 Country field modified: "${oldValue}" → "${newCountry}"`);
+                            log('success', `🏛️ Dynamic region field created and added: "${detectedCountry === 'CA' ? 'Province' : 'State'}" with value "${dynamicField.value}"`);
+                        } else {
+                            log('info', '🔍 No supported country detected for dynamic field creation');
                         }
 
                         window.demoState.prepareFormPromiseResolved = true;
@@ -591,8 +675,18 @@
                 input.classList.remove('autofilled', 'modified-by-event');
             });
             
-            const statusIndicator = document.getElementById('country-status');
-            statusIndicator.style.display = 'none';
+            // Hide status indicators
+            const countryStatusIndicator = document.getElementById('country-status');
+            if (countryStatusIndicator) {
+                countryStatusIndicator.style.display = 'none';
+            }
+            
+            // Remove dynamically created region field completely
+            const dynamicGroup = document.getElementById('dynamic-region-group');
+            if (dynamicGroup) {
+                dynamicGroup.remove();
+                log('info', '🗑️ Dynamically created region field removed');
+            }
         }
 
         function clearEverything() {
@@ -602,8 +696,10 @@
             // Clear visual indicators
             clearVisualIndicators();
             
-            // Reset state
+            // Reset state (but keep support detection)
+            const autofillSupported = window.demoState.autofillSupported;
             window.demoState = {
+                autofillSupported: autofillSupported,
                 eventFired: false,
                 eventData: null,
                 prepareFormCalled: false,
@@ -650,7 +746,22 @@
             log('info', '📁 Log exported to file');
         }
 
+        // Check AutofillEvent support
+        function checkAutofillSupport() {
+            const isSupported = typeof window.AutofillEvent !== 'undefined';
+            window.demoState.autofillSupported = isSupported;
+            
+            if (isSupported) {
+                log('success', '✅ AutofillEvent is supported in this browser');
+            } else {
+                log('warning', '⚠️ AutofillEvent is not supported in this browser');
+            }
+            
+            return isSupported;
+        }
+
         // Initialize
+        checkAutofillSupport();
         updateStateDisplay();
         log('info', '🚀 Autofill Event Demo initialized and ready');
     </script>
