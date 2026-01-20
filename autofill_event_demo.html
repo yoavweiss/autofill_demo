@@ -524,8 +524,20 @@
             window.demoState.eventFired = true;
 
             try {
+                // Log the event object to see what's available
+                log('info', '🔍 Event object keys:', Object.keys(event));
+                log('info', '🔍 Event type:', event.type);
+                log('info', '🔍 Has autofillValues?', typeof event.autofillValues);
+                
                 // Get field data from the event using the new API
                 const values = event.autofillValues();
+                
+                log('info', '🔍 autofillValues() returned:', {
+                    type: typeof values,
+                    isArray: Array.isArray(values),
+                    constructor: values?.constructor?.name,
+                    value: values
+                });
                 
                 // Check if values is available
                 if (!values) {
@@ -535,14 +547,30 @@
                 
                 window.demoState.eventData = values;
                 
-                // Convert to array for easier handling
-                const valuesArray = Array.from(values);
+                // Try to convert to array with better error handling
+                let valuesArray;
+                try {
+                    if (Array.isArray(values)) {
+                        valuesArray = values;
+                    } else if (values[Symbol.iterator]) {
+                        valuesArray = Array.from(values);
+                    } else if (typeof values === 'object') {
+                        // If it's an object but not iterable, try to extract values manually
+                        valuesArray = Object.entries(values);
+                    } else {
+                        log('error', '❌ Cannot convert values to array - unknown format');
+                        return;
+                    }
+                } catch (e) {
+                    log('error', '❌ Error converting values to array:', e.toString());
+                    return;
+                }
                 
                 log('info', `📋 Received autofill values for ${valuesArray.length} fields`, 
                     valuesArray.map(([element, value]) => ({ 
-                        id: element.id, 
-                        name: element.name,
-                        autocomplete: element.autocomplete,
+                        id: element?.id,
+                        name: element?.name,
+                        autocomplete: element?.autocomplete,
                         value: value 
                     })));
 
@@ -552,11 +580,11 @@
                 
                 // Look for country in the values
                 for (const [element, value] of valuesArray) {
-                    if (element.autocomplete === 'country') {
+                    if (element?.autocomplete === 'country') {
                         detectedCountry = value;
                         log('info', `🌍 Detected country: ${detectedCountry}`);
                     }
-                    if (element.autocomplete === 'address-level1') {
+                    if (element?.autocomplete === 'address-level1') {
                         regionValue = value;
                     }
                 }
