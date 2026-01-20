@@ -443,7 +443,7 @@
             autofillSupported: false,
             eventFired: false,
             eventData: null,
-            allFieldsReceived: [], // Accumulate all fields over time
+            autofillEvents: [], // Track each autofill event with field counts
             refillCalled: false,
             refillResolved: false,
             autofillCompleted: false,
@@ -497,14 +497,16 @@
             
             document.getElementById('state-event-fired').textContent = window.demoState.eventFired;
             
-            // Show all accumulated fields
+            // Show summary of all autofill events
             const fieldDataElement = document.getElementById('state-field-data');
-            if (window.demoState.allFieldsReceived.length === 0) {
+            if (window.demoState.autofillEvents.length === 0) {
                 fieldDataElement.textContent = '0 fields';
             } else {
-                // Create a list of unique field identifiers
-                const uniqueFields = [...new Set(window.demoState.allFieldsReceived)];
-                fieldDataElement.innerHTML = `<div style="font-size: 0.85rem; line-height: 1.4;">${uniqueFields.join(', ')}</div>`;
+                // Create a summary like "Event 1: 7 fields, Event 2: 1 field"
+                const summary = window.demoState.autofillEvents
+                    .map((count, index) => `Event ${index + 1}: ${count} field${count !== 1 ? 's' : ''}`)
+                    .join(', ');
+                fieldDataElement.innerHTML = `<div style="font-size: 0.85rem; line-height: 1.4;">${summary}</div>`;
             }
             document.getElementById('state-refill-called').textContent = window.demoState.refillCalled;
             document.getElementById('state-refill-resolved').textContent = window.demoState.refillResolved;
@@ -588,13 +590,8 @@
                     }
                 });
                 
-                // Add to accumulated fields list
-                fieldInfo.forEach(info => {
-                    const fieldIdentifier = info.autocomplete || info.id || info.name || 'unknown';
-                    if (!window.demoState.allFieldsReceived.includes(fieldIdentifier)) {
-                        window.demoState.allFieldsReceived.push(fieldIdentifier);
-                    }
-                });
+                // Track this event's field count
+                window.demoState.autofillEvents.push(valuesArray.length);
                 
                 log('info', `📋 Received autofill values for ${valuesArray.length} fields`, fieldInfo);
 
@@ -770,7 +767,7 @@
                 autofillSupported: autofillSupported,
                 eventFired: false,
                 eventData: null,
-                allFieldsReceived: [],
+                autofillEvents: [],
                 refillCalled: false,
                 refillResolved: false,
                 autofillCompleted: false,
