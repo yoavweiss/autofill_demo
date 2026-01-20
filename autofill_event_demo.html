@@ -307,11 +307,11 @@
             
             <div class="description">
                 <strong>How to test:</strong> Use Chrome's autofill feature to fill this form. 
-                The <code>onautofill</code> event will fire and you can see the event data and 
+                The <code>autofill</code> event will fire and you can see the event data and 
                 form modifications in real-time on the right panel.
             </div>
 
-            <form id="demoform" method="post" onautofill="handleAutofillEvent(event)">
+            <form id="demoform" method="post">
                 <div class="form-group">
                     <label for="NAME_FIRST">First Name</label>
                     <input type="text" id="NAME_FIRST" name="firstname" autocomplete="given-name" placeholder="Enter your first name">
@@ -409,12 +409,12 @@
                     <span class="state-value" id="state-field-data">0 fields</span>
                 </div>
                 <div class="state-item">
-                    <span>prepareForm() Called:</span>
-                    <span class="state-value" id="state-prepare-form">false</span>
+                    <span>refill() Called:</span>
+                    <span class="state-value" id="state-refill-called">false</span>
                 </div>
                 <div class="state-item">
-                    <span>Promise Resolved:</span>
-                    <span class="state-value" id="state-promise-resolved">false</span>
+                    <span>refill() Resolved:</span>
+                    <span class="state-value" id="state-refill-resolved">false</span>
                 </div>
                 <div class="state-item">
                     <span>Form Modified:</span>
@@ -447,8 +447,8 @@
             autofillSupported: false,
             eventFired: false,
             eventData: null,
-            prepareFormCalled: false,
-            prepareFormPromiseResolved: false,
+            refillCalled: false,
+            refillResolved: false,
             autofillCompleted: false,
             formModified: false,
             errors: [],
@@ -501,137 +501,119 @@
             document.getElementById('state-event-fired').textContent = window.demoState.eventFired;
             document.getElementById('state-field-data').textContent = 
                 window.demoState.eventData ? `${window.demoState.eventData.length} fields` : '0 fields';
-            document.getElementById('state-prepare-form').textContent = window.demoState.prepareFormCalled;
-            document.getElementById('state-promise-resolved').textContent = window.demoState.prepareFormPromiseResolved;
+            document.getElementById('state-refill-called').textContent = window.demoState.refillCalled;
+            document.getElementById('state-refill-resolved').textContent = window.demoState.refillResolved;
             document.getElementById('state-form-modified').textContent = window.demoState.formModified;
             document.getElementById('state-autofill-completed').textContent = window.demoState.autofillCompleted;
         }
 
         // Main autofill event handler
-        function handleAutofillEvent(event) {
+        async function handleAutofillEvent(event) {
             log('event', '🎯 Autofill event fired!');
             window.demoState.eventFired = true;
 
             try {
-                // Get field data from the event
-                const fieldData = event.fieldData();
-                window.demoState.eventData = fieldData;
+                // Get field data from the event using the new API
+                const values = event.values;
+                window.demoState.eventData = values;
                 
-                log('info', `📋 Received field data for ${fieldData.length} fields`, 
-                    fieldData.map(f => ({ fieldId: f.fieldId, value: f.value, autocompleteAttribute: f.autocompleteAttribute })));
+                log('info', `📋 Received autofill values for ${values.length} fields`, 
+                    Array.from(values).map(([element, value]) => ({ 
+                        id: element.id, 
+                        name: element.name,
+                        autocomplete: element.autocomplete,
+                        value: value 
+                    })));
 
-                // Create a promise that modifies the form
-                const promise = new Promise((resolve) => {
-                    log('info', '⏳ Creating prepareForm promise with 500ms delay...');
+                // Detect country from autofill data
+                let detectedCountry = null;
+                let regionValue = '';
+                
+                // Look for country in the values
+                for (const [element, value] of values) {
+                    if (element.autocomplete === 'country') {
+                        detectedCountry = value;
+                        log('info', `🌍 Detected country: ${detectedCountry}`);
+                    }
+                    if (element.autocomplete === 'address-level1') {
+                        regionValue = value;
+                    }
+                }
+                
+                // Check if we need to modify the form and if refill is available
+                if (event.refill !== null && detectedCountry && (detectedCountry === 'US' || detectedCountry === 'CA')) {
+                    log('info', '🔧 Form modification needed - adding dynamic region field...');
                     
-                    setTimeout(() => {
-                        log('info', '🔧 Promise executing - adding dynamic region field...');
+                    // Check if field already exists (avoid duplicates)
+                    let existingField = document.getElementById('DYNAMIC_REGION');
+                    if (!existingField) {
+                        // Create the dynamic field group
+                        const dynamicGroup = document.createElement('div');
+                        dynamicGroup.className = 'form-group';
+                        dynamicGroup.id = 'dynamic-region-group';
                         
-                        // Detect country from autofill data
-                        let detectedCountry = null;
-                        let regionValue = '';
+                        // Create label with status indicator
+                        const label = document.createElement('label');
+                        label.setAttribute('for', 'DYNAMIC_REGION');
                         
-                        // Look for country hints in the field data
-                        const addressFields = fieldData.filter(f => 
-                            f.autocompleteAttribute && f.autocompleteAttribute.includes('address'));
+                        const labelText = document.createElement('span');
+                        labelText.id = 'dynamic-region-label';
                         
-                        if (addressFields.length > 0) {
-                            // Simple heuristic based on common patterns
-                            const allText = addressFields.map(f => f.value).join(' ').toLowerCase();
-                            if (allText.includes('canada') || allText.includes('toronto') || allText.includes('vancouver')) {
-                                detectedCountry = 'CA';
-                            } else if (allText.includes('united states') || allText.includes('usa') || allText.includes('new york') || allText.includes('california')) {
-                                detectedCountry = 'US';
-                            }
+                        const statusIndicator = document.createElement('span');
+                        statusIndicator.className = 'status-indicator status-info';
+                        statusIndicator.id = 'dynamic-region-status';
+                        statusIndicator.textContent = 'Added by Event';
+                        statusIndicator.style.display = 'inline-block';
+                        
+                        label.appendChild(labelText);
+                        label.appendChild(statusIndicator);
+                        
+                        // Create input field
+                        const dynamicField = document.createElement('input');
+                        dynamicField.type = 'text';
+                        dynamicField.id = 'DYNAMIC_REGION';
+                        dynamicField.name = 'dynamic_region';
+                        dynamicField.autocomplete = 'address-level1';
+                        dynamicField.classList.add('modified-by-event');
+                        
+                        // Set appropriate label and placeholder based on country
+                        if (detectedCountry === 'CA') {
+                            labelText.textContent = 'Province (Dynamic)';
+                            dynamicField.placeholder = 'Province will be autofilled';
+                        } else if (detectedCountry === 'US') {
+                            labelText.textContent = 'State (Dynamic)';
+                            dynamicField.placeholder = 'State will be autofilled';
                         }
                         
-                        // Also check if there's a state/province field in the autofill data
-                        const stateField = fieldData.find(f => 
-                            f.autocompleteAttribute === 'address-level1' || 
-                            f.fieldId === 'ADDRESS_HOME_STATE');
+                        // Assemble the field group
+                        dynamicGroup.appendChild(label);
+                        dynamicGroup.appendChild(dynamicField);
                         
-                        if (stateField && stateField.value) {
-                            regionValue = stateField.value;
-                        }
+                        // Insert after the existing State/Province field
+                        const stateFieldGroup = document.getElementById('ADDRESS_HOME_STATE').parentElement;
+                        stateFieldGroup.parentNode.insertBefore(dynamicGroup, stateFieldGroup.nextSibling);
                         
-                        // Add dynamic field if we detected a country
-                        if (detectedCountry && (detectedCountry === 'CA' || detectedCountry === 'US')) {
-                            // Check if field already exists (avoid duplicates)
-                            let existingField = document.getElementById('DYNAMIC_REGION');
-                            if (existingField) {
-                                existingField.parentElement.remove();
-                            }
-                            
-                            // Create the dynamic field group
-                            const dynamicGroup = document.createElement('div');
-                            dynamicGroup.className = 'form-group';
-                            dynamicGroup.id = 'dynamic-region-group';
-                            
-                            // Create label with status indicator
-                            const label = document.createElement('label');
-                            label.setAttribute('for', 'DYNAMIC_REGION');
-                            
-                            const labelText = document.createElement('span');
-                            labelText.id = 'dynamic-region-label';
-                            
-                            const statusIndicator = document.createElement('span');
-                            statusIndicator.className = 'status-indicator status-info';
-                            statusIndicator.id = 'dynamic-region-status';
-                            statusIndicator.textContent = 'Added by Event';
-                            statusIndicator.style.display = 'inline-block';
-                            
-                            label.appendChild(labelText);
-                            label.appendChild(statusIndicator);
-                            
-                            // Create input field
-                            const dynamicField = document.createElement('input');
-                            dynamicField.type = 'text';
-                            dynamicField.id = 'DYNAMIC_REGION';
-                            dynamicField.name = 'dynamic_region';
-                            dynamicField.classList.add('modified-by-event');
-                            
-                            // Set appropriate label and placeholder based on country
-                            if (detectedCountry === 'CA') {
-                                labelText.textContent = 'Province';
-                                dynamicField.placeholder = 'Detected Canadian province';
-                            } else if (detectedCountry === 'US') {
-                                labelText.textContent = 'State';
-                                dynamicField.placeholder = 'Detected US state';
-                            }
-                            
-                            // Set the value if we have one
-                            if (regionValue) {
-                                dynamicField.value = regionValue;
-                            } else {
-                                dynamicField.value = `Detected: ${detectedCountry === 'CA' ? 'Canada' : 'United States'}`;
-                            }
-                            
-                            // Assemble the field group
-                            dynamicGroup.appendChild(label);
-                            dynamicGroup.appendChild(dynamicField);
-                            
-                            // Insert after the existing State/Province field
-                            const stateFieldGroup = document.getElementById('ADDRESS_HOME_STATE').parentElement;
-                            stateFieldGroup.parentNode.insertBefore(dynamicGroup, stateFieldGroup.nextSibling);
-                            
-                            window.demoState.formModified = true;
-                            
-                            log('success', `🏛️ Dynamic region field created and added: "${detectedCountry === 'CA' ? 'Province' : 'State'}" with value "${dynamicField.value}"`);
-                        } else {
-                            log('info', '🔍 No supported country detected for dynamic field creation');
-                        }
-
-                        window.demoState.prepareFormPromiseResolved = true;
-                        log('success', '✅ prepareForm promise resolved');
+                        window.demoState.formModified = true;
+                        
+                        log('success', `🏛️ Dynamic region field created: "${detectedCountry === 'CA' ? 'Province' : 'State'}"`);
+                        
+                        // Call refill to trigger autofill again with the new field
+                        window.demoState.refillCalled = true;
                         updateStateDisplay();
-                        resolve();
-                    }, 500);
-                });
-
-                // Call prepareForm with our promise
-                event.prepareForm(promise);
-                window.demoState.prepareFormCalled = true;
-                log('info', '📞 prepareForm() method called with promise');
+                        log('info', '📞 Calling refill() to re-trigger autofill...');
+                        
+                        await event.refill();
+                        
+                        window.demoState.refillResolved = true;
+                        log('success', '✅ refill() completed successfully');
+                    } else {
+                        log('info', '✓ Dynamic field already exists, skipping creation');
+                    }
+                } else if (event.refill === null) {
+                    log('info', '🔄 This is a refill event (refill is null), performing final autofill');
+                } else {
+                    log('info', '🔍 No form modification needed for this country');
+                }
                 
             } catch (error) {
                 log('error', '❌ Error in autofill event handler', error.toString());
@@ -643,7 +625,7 @@
 
         // Monitor form changes to detect autofill completion
         document.getElementById('demoform').addEventListener('input', function(e) {
-            if (window.demoState.prepareFormPromiseResolved && !window.demoState.autofillCompleted) {
+            if (window.demoState.eventFired && !window.demoState.autofillCompleted) {
                 window.demoState.autofillCompleted = true;
                 log('success', '🎉 Autofill completed successfully!');
                 
@@ -702,8 +684,8 @@
                 autofillSupported: autofillSupported,
                 eventFired: false,
                 eventData: null,
-                prepareFormCalled: false,
-                prepareFormPromiseResolved: false,
+                refillCalled: false,
+                refillResolved: false,
                 autofillCompleted: false,
                 formModified: false,
                 errors: [],
@@ -763,6 +745,10 @@
         // Initialize
         checkAutofillSupport();
         updateStateDisplay();
+        
+        // Add autofill event listener
+        document.addEventListener('autofill', handleAutofillEvent);
+        log('info', '🎧 Autofill event listener registered');
         log('info', '🚀 Autofill Event Demo initialized and ready');
     </script>
 </body>
