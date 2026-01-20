@@ -337,12 +337,7 @@
                     <input type="text" id="ADDRESS_HOME_CITY" name="city" autocomplete="address-level2" placeholder="Enter your city">
                 </div>
 
-                <div class="form-group">
-                    <label for="ADDRESS_HOME_STATE">State/Province</label>
-                    <input type="text" id="ADDRESS_HOME_STATE" name="state" autocomplete="address-level1" placeholder="Enter your state">
-                </div>
-
-                <div class="form-group">
+                <div class="form-group" id="postal-code-group">
                     <label for="ADDRESS_HOME_ZIP">ZIP/Postal Code</label>
                     <input type="text" id="ADDRESS_HOME_ZIP" name="zipcode" autocomplete="postal-code" placeholder="Enter your ZIP code">
                 </div>
@@ -382,7 +377,7 @@
                     <span>Fields added/modified by event handler</span>
                 </div>
                 <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #e1e5e9; font-size: 0.8rem; color: #666;">
-                    <strong>Note:</strong> The dynamic region field appears only when US or Canadian addresses are detected.
+                    <strong>Note:</strong> The State/Province field will be dynamically added when US or Canadian addresses are detected during autofill.
                 </div>
             </div>
         </div>
@@ -671,9 +666,9 @@
                         dynamicGroup.appendChild(label);
                         dynamicGroup.appendChild(dynamicField);
                         
-                        // Insert after the existing State/Province field
-                        const stateFieldGroup = document.getElementById('ADDRESS_HOME_STATE').parentElement;
-                        stateFieldGroup.parentNode.insertBefore(dynamicGroup, stateFieldGroup.nextSibling);
+                        // Insert before the postal code field
+                        const postalCodeGroup = document.getElementById('postal-code-group');
+                        postalCodeGroup.parentNode.insertBefore(dynamicGroup, postalCodeGroup);
                         
                         window.demoState.formModified = true;
                         
