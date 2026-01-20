@@ -525,11 +525,11 @@
 
             try {
                 // Get field data from the event using the new API
-                const values = event.values;
+                const values = event.autofillValues();
                 
                 // Check if values is available
                 if (!values) {
-                    log('error', '❌ event.values is undefined - API may not be supported');
+                    log('error', '❌ event.autofillValues() returned undefined - API may not be supported');
                     return;
                 }
                 
