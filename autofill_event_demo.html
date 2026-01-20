@@ -443,6 +443,7 @@
             autofillSupported: false,
             eventFired: false,
             eventData: null,
+            allFieldsReceived: [], // Accumulate all fields over time
             refillCalled: false,
             refillResolved: false,
             autofillCompleted: false,
@@ -496,17 +497,15 @@
             
             document.getElementById('state-event-fired').textContent = window.demoState.eventFired;
             
-            // Safely get the count of fields
-            let fieldCount = '0 fields';
-            if (window.demoState.eventData) {
-                try {
-                    const count = Array.from(window.demoState.eventData).length;
-                    fieldCount = `${count} fields`;
-                } catch (e) {
-                    fieldCount = 'unknown';
-                }
+            // Show all accumulated fields
+            const fieldDataElement = document.getElementById('state-field-data');
+            if (window.demoState.allFieldsReceived.length === 0) {
+                fieldDataElement.textContent = '0 fields';
+            } else {
+                // Create a list of unique field identifiers
+                const uniqueFields = [...new Set(window.demoState.allFieldsReceived)];
+                fieldDataElement.innerHTML = `<div style="font-size: 0.85rem; line-height: 1.4;">${uniqueFields.join(', ')}</div>`;
             }
-            document.getElementById('state-field-data').textContent = fieldCount;
             document.getElementById('state-refill-called').textContent = window.demoState.refillCalled;
             document.getElementById('state-refill-resolved').textContent = window.demoState.refillResolved;
             document.getElementById('state-form-modified').textContent = window.demoState.formModified;
@@ -561,33 +560,43 @@
                     return;
                 }
                 
-                log('info', `📋 Received autofill values for ${valuesArray.length} fields`, 
-                    valuesArray.map((item) => {
-                        // Handle different possible formats
-                        if (Array.isArray(item) && item.length >= 2) {
-                            const [element, value] = item;
-                            return { 
-                                id: element?.id,
-                                name: element?.name,
-                                autocomplete: element?.autocomplete,
-                                value: value 
-                            };
-                        } else if (item && typeof item === 'object' && 'field' in item) {
-                            // New API format: {field: HTMLElement, value: string}
-                            const field = item.field;
-                            return {
-                                id: field?.id,
-                                name: field?.name,
-                                autocomplete: field?.autocomplete,
-                                placeholder: field?.placeholder,
-                                tagName: field?.tagName,
-                                type: field?.type,
-                                value: item.value
-                            };
-                        } else {
-                            return { raw: item };
-                        }
-                    }));
+                // Accumulate field information
+                const fieldInfo = valuesArray.map((item) => {
+                    // Handle different possible formats
+                    if (Array.isArray(item) && item.length >= 2) {
+                        const [element, value] = item;
+                        return { 
+                            id: element?.id,
+                            name: element?.name,
+                            autocomplete: element?.autocomplete,
+                            value: value 
+                        };
+                    } else if (item && typeof item === 'object' && 'field' in item) {
+                        // New API format: {field: HTMLElement, value: string}
+                        const field = item.field;
+                        return {
+                            id: field?.id,
+                            name: field?.name,
+                            autocomplete: field?.autocomplete,
+                            placeholder: field?.placeholder,
+                            tagName: field?.tagName,
+                            type: field?.type,
+                            value: item.value
+                        };
+                    } else {
+                        return { raw: item };
+                    }
+                });
+                
+                // Add to accumulated fields list
+                fieldInfo.forEach(info => {
+                    const fieldIdentifier = info.autocomplete || info.id || info.name || 'unknown';
+                    if (!window.demoState.allFieldsReceived.includes(fieldIdentifier)) {
+                        window.demoState.allFieldsReceived.push(fieldIdentifier);
+                    }
+                });
+                
+                log('info', `📋 Received autofill values for ${valuesArray.length} fields`, fieldInfo);
 
                 // Detect country from autofill data
                 let detectedCountry = null;
@@ -761,6 +770,7 @@
                 autofillSupported: autofillSupported,
                 eventFired: false,
                 eventData: null,
+                allFieldsReceived: [],
                 refillCalled: false,
                 refillResolved: false,
                 autofillCompleted: false,
