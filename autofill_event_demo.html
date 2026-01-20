@@ -567,25 +567,37 @@
                 }
                 
                 log('info', `📋 Received autofill values for ${valuesArray.length} fields`, 
-                    valuesArray.map(([element, value]) => ({ 
-                        id: element?.id,
-                        name: element?.name,
-                        autocomplete: element?.autocomplete,
-                        value: value 
-                    })));
+                    valuesArray.map((item) => {
+                        // Handle different possible formats
+                        if (Array.isArray(item) && item.length >= 2) {
+                            const [element, value] = item;
+                            return { 
+                                id: element?.id,
+                                name: element?.name,
+                                autocomplete: element?.autocomplete,
+                                value: value 
+                            };
+                        } else {
+                            return { raw: item };
+                        }
+                    }));
 
                 // Detect country from autofill data
                 let detectedCountry = null;
                 let regionValue = '';
                 
                 // Look for country in the values
-                for (const [element, value] of valuesArray) {
-                    if (element?.autocomplete === 'country') {
-                        detectedCountry = value;
-                        log('info', `🌍 Detected country: ${detectedCountry}`);
-                    }
-                    if (element?.autocomplete === 'address-level1') {
-                        regionValue = value;
+                for (const item of valuesArray) {
+                    // Safely destructure only if it's an array
+                    if (Array.isArray(item) && item.length >= 2) {
+                        const [element, value] = item;
+                        if (element?.autocomplete === 'country') {
+                            detectedCountry = value;
+                            log('info', `🌍 Detected country: ${detectedCountry}`);
+                        }
+                        if (element?.autocomplete === 'address-level1') {
+                            regionValue = value;
+                        }
                     }
                 }
                 
