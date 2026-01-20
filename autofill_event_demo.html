@@ -577,6 +577,18 @@
                                 autocomplete: element?.autocomplete,
                                 value: value 
                             };
+                        } else if (item && typeof item === 'object' && 'field' in item) {
+                            // New API format: {field: HTMLElement, value: string}
+                            const field = item.field;
+                            return {
+                                id: field?.id,
+                                name: field?.name,
+                                autocomplete: field?.autocomplete,
+                                placeholder: field?.placeholder,
+                                tagName: field?.tagName,
+                                type: field?.type,
+                                value: item.value
+                            };
                         } else {
                             return { raw: item };
                         }
@@ -588,14 +600,23 @@
                 
                 // Look for country in the values
                 for (const item of valuesArray) {
-                    // Safely destructure only if it's an array
+                    let element, value;
+                    
+                    // Handle different formats
                     if (Array.isArray(item) && item.length >= 2) {
-                        const [element, value] = item;
-                        if (element?.autocomplete === 'country') {
+                        [element, value] = item;
+                    } else if (item && typeof item === 'object' && 'field' in item) {
+                        // New API format: {field: HTMLElement, value: string}
+                        element = item.field;
+                        value = item.value;
+                    }
+                    
+                    if (element && value) {
+                        if (element.autocomplete === 'country') {
                             detectedCountry = value;
                             log('info', `🌍 Detected country: ${detectedCountry}`);
                         }
-                        if (element?.autocomplete === 'address-level1') {
+                        if (element.autocomplete === 'address-level1') {
                             regionValue = value;
                         }
                     }
