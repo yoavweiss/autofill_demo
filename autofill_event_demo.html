@@ -306,9 +306,13 @@
             <h2>Personal Information Form</h2>
             
             <div class="description">
-                <strong>How to test:</strong> Use Chrome's autofill feature to fill this form. 
-                The <code>autofill</code> event will fire and you can see the event data and 
-                form modifications in real-time on the right panel.
+                <strong>How to test:</strong>
+                <ol style="margin: 10px 0 0 20px; line-height: 1.8;">
+                    <li>Use <strong>Chrome Canary</strong> with the <a href="chrome://flags/#enable-experimental-web-platform-features" target="_blank" style="color: #667eea; text-decoration: underline;">"Experimental web platform features"</a> flag enabled (navigate to <code>chrome://flags</code> and search for "Experimental web platform features")</li>
+                    <li>Make sure you have at least one address saved in Chrome's settings (<strong>Settings → Autofill and passwords → Addresses and more</strong>). <a href="https://support.google.com/chrome/answer/142893" target="_blank" style="color: #667eea; text-decoration: underline;">Learn how</a></li>
+                    <li>Click on any form field below and select your saved address from the autofill dropdown</li>
+                    <li>Watch the <code>autofill</code> event fire and see the form dynamically adapt in real-time!</li>
+                </ol>
             </div>
 
             <form id="demoform" method="post">
@@ -568,8 +572,9 @@
                     if (Array.isArray(item) && item.length >= 2) {
                         const [element, value] = item;
                         return { 
+                            name: element?.name || element?.id,
                             id: element?.id,
-                            name: element?.name,
+                            nameAttr: element?.name,
                             autocomplete: element?.autocomplete,
                             value: value 
                         };
@@ -577,8 +582,9 @@
                         // New API format: {field: HTMLElement, value: string}
                         const field = item.field;
                         return {
+                            name: field?.name || field?.id,
                             id: field?.id,
-                            name: field?.name,
+                            nameAttr: field?.name,
                             autocomplete: field?.autocomplete,
                             placeholder: field?.placeholder,
                             tagName: field?.tagName,
