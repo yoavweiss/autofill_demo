@@ -520,6 +520,7 @@
 
         // Main autofill event handler
         async function handleAutofillEvent(event) {
+            if(!('AutofillEvent' in window)) return; // add this 
             log('event', '🎯 Autofill event fired!');
             window.demoState.eventFired = true;
 
