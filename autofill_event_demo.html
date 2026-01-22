@@ -531,9 +531,9 @@
                 log('info', '🔍 Has autofillValues?', typeof event.autofillValues);
                 
                 // Get field data from the event using the new API
-                const values = event.autofillValues();
+                const values = event.autofillValues;
                 
-                log('info', '🔍 autofillValues() returned:', {
+                log('info', '🔍 autofillValues returned:', {
                     type: typeof values,
                     isArray: Array.isArray(values),
                     constructor: values?.constructor?.name,
@@ -542,7 +542,7 @@
                 
                 // Check if values is available
                 if (!values) {
-                    log('error', '❌ event.autofillValues() returned undefined - API may not be supported');
+                    log('error', '❌ event.autofillValues returned undefined - API may not be supported');
                     return;
                 }
                 
