@@ -873,23 +873,15 @@
                             id: element?.id,
                             name: element?.name,
                             autocomplete: element?.autocomplete,
-                            value: value?.substring(0, 4) + '****' // Mask card data
+                            value: value
                         };
                     } else if (item && typeof item === 'object' && 'field' in item) {
                         const field = item.field;
-                        const val = item.value || '';
-                        // Mask sensitive data in logs
-                        let maskedValue = val;
-                        if (field?.autocomplete === 'cc-number') {
-                            maskedValue = '****' + val.slice(-4);
-                        } else if (field?.autocomplete === 'cc-csc') {
-                            maskedValue = '***';
-                        }
                         return {
                             id: field?.id,
                             name: field?.name,
                             autocomplete: field?.autocomplete,
-                            value: maskedValue
+                            value: item.value
                         };
                     }
                     return { raw: 'unknown format' };
