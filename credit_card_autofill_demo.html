@@ -1,0 +1,1106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Credit Card Autofill Event Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            min-height: calc(100vh - 40px);
+        }
+
+        .demo-section {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+        }
+
+        .form-section {
+            max-height: calc(100vh - 80px);
+            overflow-y: auto;
+        }
+
+        .log-section {
+            background: #0d1117;
+            color: #c9d1d9;
+            max-height: calc(100vh - 80px);
+            overflow-y: auto;
+            border: 1px solid #30363d;
+        }
+
+        h1 {
+            color: #1a1a2e;
+            margin-bottom: 8px;
+            font-size: 1.75rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+
+        h2 {
+            color: #6b7280;
+            margin-bottom: 24px;
+            font-size: 1rem;
+            font-weight: 400;
+        }
+
+        .log-section h1,
+        .log-section h2 {
+            color: #c9d1d9;
+        }
+
+        .log-section h2 {
+            color: #8b949e;
+        }
+
+        .description {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border-left: 4px solid #f59e0b;
+            padding: 16px 18px;
+            margin-bottom: 28px;
+            border-radius: 0 12px 12px 0;
+            font-size: 0.875rem;
+            line-height: 1.6;
+        }
+
+        .description strong {
+            color: #92400e;
+        }
+
+        .description code {
+            background: rgba(0,0,0,0.08);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 0.8rem;
+        }
+
+        /* Credit Card Visual */
+        .card-preview {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f97316 100%);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 28px;
+            color: white;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(102, 126, 234, 0.4);
+        }
+
+        .card-preview::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+        }
+
+        .card-chip {
+            width: 50px;
+            height: 38px;
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+            border-radius: 6px;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .card-chip::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 30px;
+            height: 24px;
+            border: 2px solid rgba(0,0,0,0.2);
+            border-radius: 3px;
+        }
+
+        .card-number {
+            font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+            font-size: 1.4rem;
+            letter-spacing: 3px;
+            margin-bottom: 20px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .card-details {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        .card-holder-name {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.9;
+        }
+
+        .card-expiry {
+            text-align: right;
+        }
+
+        .card-expiry-label {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            opacity: 0.7;
+            margin-bottom: 2px;
+        }
+
+        .card-expiry-value {
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 1rem;
+        }
+
+        .card-brand {
+            position: absolute;
+            top: 24px;
+            right: 24px;
+            font-size: 1.5rem;
+            font-weight: 700;
+            opacity: 0.9;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #374151;
+            font-size: 0.9rem;
+        }
+
+        input[type="text"],
+        input[type="tel"],
+        select {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.2s ease;
+            background: white;
+        }
+
+        input[type="text"]:focus,
+        input[type="tel"]:focus,
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.15);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .form-row-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 16px;
+        }
+
+        .autofilled {
+            border-color: #10b981 !important;
+            background-color: #ecfdf5 !important;
+            box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15) !important;
+        }
+
+        .modified-by-event {
+            border-color: #f59e0b !important;
+            background-color: #fffbeb !important;
+            box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.15) !important;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 28px;
+        }
+
+        button {
+            padding: 14px 28px;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 4px 14px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+        }
+
+        .btn-secondary {
+            background: #f3f4f6;
+            color: #4b5563;
+        }
+
+        .btn-secondary:hover {
+            background: #e5e7eb;
+        }
+
+        .btn-danger {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        .btn-danger:hover {
+            background: #fecaca;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-left: 10px;
+        }
+
+        .status-success {
+            background: #dcfce7;
+            color: #16a34a;
+        }
+
+        .status-warning {
+            background: #fef3c7;
+            color: #d97706;
+        }
+
+        .status-info {
+            background: #dbeafe;
+            color: #2563eb;
+        }
+
+        .status-error {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        .log-container {
+            height: 400px;
+            overflow-y: auto;
+            background: #161b22;
+            border-radius: 10px;
+            padding: 16px;
+            font-family: 'SF Mono', Monaco, 'Menlo', monospace;
+            font-size: 0.8rem;
+            line-height: 1.5;
+            border: 1px solid #30363d;
+        }
+
+        .log-entry {
+            margin-bottom: 12px;
+            padding: 10px 0;
+            border-bottom: 1px solid #21262d;
+        }
+
+        .log-timestamp {
+            color: #6e7681;
+            font-size: 0.75rem;
+        }
+
+        .log-event {
+            color: #58a6ff;
+            font-weight: 600;
+        }
+
+        .log-data {
+            color: #e3b341;
+            margin-left: 16px;
+            margin-top: 6px;
+            white-space: pre-wrap;
+            word-break: break-all;
+            background: rgba(0,0,0,0.3);
+            padding: 8px;
+            border-radius: 6px;
+        }
+
+        .log-error {
+            color: #f85149;
+        }
+
+        .log-success {
+            color: #3fb950;
+        }
+
+        .state-panel {
+            background: #21262d;
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 20px;
+            border: 1px solid #30363d;
+        }
+
+        .state-panel h3 {
+            color: #c9d1d9;
+            margin-bottom: 14px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .state-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            font-size: 0.85rem;
+        }
+
+        .state-value {
+            color: #3fb950;
+            font-weight: 600;
+        }
+
+        .legend {
+            margin-top: 24px;
+            padding: 16px;
+            background: #f9fafb;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            border: 1px solid #e5e7eb;
+        }
+
+        .legend h3 {
+            margin-bottom: 14px;
+            color: #374151;
+            font-size: 0.9rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .legend-color {
+            width: 18px;
+            height: 18px;
+            border-radius: 4px;
+            margin-right: 12px;
+            border: 2px solid;
+        }
+
+        .legend-color.autofilled {
+            background: #ecfdf5;
+            border-color: #10b981;
+        }
+
+        .legend-color.modified {
+            background: #fffbeb;
+            border-color: #f59e0b;
+        }
+
+        .security-note {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 10px;
+            padding: 14px;
+            margin-top: 16px;
+            font-size: 0.8rem;
+            color: #991b1b;
+        }
+
+        .security-note svg {
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .demo-section {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            .form-row,
+            .form-row-3 {
+                grid-template-columns: 1fr;
+            }
+
+            .card-number {
+                font-size: 1.1rem;
+                letter-spacing: 2px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Form Section -->
+        <div class="demo-section form-section">
+            <h1>💳 Credit Card Autofill Demo</h1>
+            <h2>Test the Autofill Event API with Payment Methods</h2>
+            
+            <div class="description">
+                <strong>How to test:</strong>
+                <ol style="margin: 10px 0 0 20px; line-height: 1.9;">
+                    <li>Use <strong>Chrome Canary</strong> with <a href="chrome://flags/#enable-experimental-web-platform-features" style="color: #92400e;">Experimental Web Platform Features</a> enabled</li>
+                    <li>Save a credit card in Chrome Settings (<strong>Autofill and passwords → Payment methods</strong>)</li>
+                    <li>Click on the card number field and select your saved card</li>
+                    <li>Watch the <code>autofill</code> event fire and observe real-time updates!</li>
+                </ol>
+            </div>
+
+            <!-- Credit Card Visual Preview -->
+            <div class="card-preview" id="card-preview">
+                <div class="card-brand" id="card-brand">CARD</div>
+                <div class="card-chip"></div>
+                <div class="card-number" id="card-number-display">•••• •••• •••• ••••</div>
+                <div class="card-details">
+                    <div class="card-holder-name" id="card-holder-display">YOUR NAME</div>
+                    <div class="card-expiry">
+                        <div class="card-expiry-label">Valid Thru</div>
+                        <div class="card-expiry-value" id="card-expiry-display">MM/YY</div>
+                    </div>
+                </div>
+            </div>
+
+            <form id="paymentform" method="post" autocomplete="on">
+                <div class="form-group">
+                    <label for="cc-name">Cardholder Name</label>
+                    <input type="text" id="cc-name" name="ccname" autocomplete="cc-name" placeholder="Name on card">
+                </div>
+
+                <div class="form-group">
+                    <label for="cc-number">Card Number</label>
+                    <input type="tel" id="cc-number" name="ccnumber" autocomplete="cc-number" placeholder="1234 5678 9012 3456" maxlength="19">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="cc-exp">Expiration Date</label>
+                        <input type="text" id="cc-exp" name="ccexp" autocomplete="cc-exp" placeholder="MM/YY">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="cc-csc">
+                            Security Code (CVV)
+                            <span class="status-indicator status-info" id="cvv-status" style="display: none;">Protected</span>
+                        </label>
+                        <input type="tel" id="cc-csc" name="cccsc" autocomplete="cc-csc" placeholder="123" maxlength="4">
+                    </div>
+                </div>
+
+                <div class="form-group" id="card-type-group" style="display: none;">
+                    <label for="cc-type">
+                        Card Type
+                        <span class="status-indicator status-warning">Detected by Event</span>
+                    </label>
+                    <select id="cc-type" name="cctype" class="modified-by-event">
+                        <option value="">Select Card Type</option>
+                        <option value="visa">Visa</option>
+                        <option value="mastercard">Mastercard</option>
+                        <option value="amex">American Express</option>
+                        <option value="discover">Discover</option>
+                        <option value="diners">Diners Club</option>
+                        <option value="jcb">JCB</option>
+                        <option value="unionpay">UnionPay</option>
+                    </select>
+                </div>
+
+                <!-- Optional: Billing Address Section -->
+                <div id="billing-section" style="display: none; margin-top: 24px; padding-top: 24px; border-top: 2px solid #e5e7eb;">
+                    <h3 style="color: #374151; margin-bottom: 16px; font-size: 1rem;">
+                        Billing Address
+                        <span class="status-indicator status-info">Added by Event</span>
+                    </h3>
+                    
+                    <div class="form-group">
+                        <label for="billing-address">Street Address</label>
+                        <input type="text" id="billing-address" name="billing-address" autocomplete="billing street-address" placeholder="Enter billing address" class="modified-by-event">
+                    </div>
+
+                    <div class="form-row-3">
+                        <div class="form-group">
+                            <label for="billing-city">City</label>
+                            <input type="text" id="billing-city" name="billing-city" autocomplete="billing address-level2" placeholder="City" class="modified-by-event">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="billing-state">State</label>
+                            <input type="text" id="billing-state" name="billing-state" autocomplete="billing address-level1" placeholder="State" class="modified-by-event">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="billing-zip">ZIP Code</label>
+                            <input type="text" id="billing-zip" name="billing-zip" autocomplete="billing postal-code" placeholder="ZIP" class="modified-by-event">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="buttons">
+                    <button type="submit" class="btn-primary">Pay Now</button>
+                    <button type="reset" class="btn-secondary">Reset</button>
+                    <button type="button" class="btn-danger" onclick="clearEverything()">Clear All</button>
+                </div>
+            </form>
+
+            <div class="legend">
+                <h3>Field Color Legend</h3>
+                <div class="legend-item">
+                    <div class="legend-color autofilled"></div>
+                    <span>Fields filled by browser autofill</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color modified"></div>
+                    <span>Fields added/modified by event handler</span>
+                </div>
+            </div>
+
+            <div class="security-note">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M8 0L0 3v4.5c0 4.14 3.41 8.01 8 8.5 4.59-.49 8-4.36 8-8.5V3L8 0zm0 14.92C4.38 14.43 2 11.34 2 7.5V4.06l6-2.25 6 2.25V7.5c0 3.84-2.38 6.93-6 7.42z"/>
+                    <path d="M8 4a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0v-4A.5.5 0 0 1 8 4zm0 7a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5z"/>
+                </svg>
+                <span>
+                    <strong>Demo Only:</strong> This page demonstrates the Autofill Event API. 
+                    No payment data is transmitted. CVV values are typically not stored by browsers for security.
+                </span>
+            </div>
+        </div>
+
+        <!-- Logging Section -->
+        <div class="demo-section log-section">
+            <h1>📊 Event Monitor</h1>
+            <h2>Real-time Credit Card Autofill Tracking</h2>
+
+            <div class="state-panel">
+                <h3>Current State</h3>
+                <div class="state-item">
+                    <span>AutofillEvent Support:</span>
+                    <span class="state-value" id="state-autofill-support">
+                        <span class="status-indicator" id="support-indicator">Checking...</span>
+                    </span>
+                </div>
+                <div class="state-item">
+                    <span>Event Fired:</span>
+                    <span class="state-value" id="state-event-fired">false</span>
+                </div>
+                <div class="state-item">
+                    <span>Field Data Received:</span>
+                    <span class="state-value" id="state-field-data">0 fields</span>
+                </div>
+                <div class="state-item">
+                    <span>Card Type Detected:</span>
+                    <span class="state-value" id="state-card-type">—</span>
+                </div>
+                <div class="state-item">
+                    <span>refill() Called:</span>
+                    <span class="state-value" id="state-refill-called">false</span>
+                </div>
+                <div class="state-item">
+                    <span>refill() Resolved:</span>
+                    <span class="state-value" id="state-refill-resolved">false</span>
+                </div>
+                <div class="state-item">
+                    <span>Form Modified:</span>
+                    <span class="state-value" id="state-form-modified">false</span>
+                </div>
+                <div class="state-item">
+                    <span>Autofill Completed:</span>
+                    <span class="state-value" id="state-autofill-completed">false</span>
+                </div>
+            </div>
+
+            <h3 style="margin-bottom: 15px; color: #c9d1d9; font-size: 0.9rem;">Event Log</h3>
+            <div class="log-container" id="log-container">
+                <div class="log-entry">
+                    <div class="log-timestamp">[Ready]</div>
+                    <div class="log-event">Credit Card Demo initialized. Waiting for autofill events...</div>
+                </div>
+            </div>
+
+            <div class="buttons" style="margin-top: 20px;">
+                <button type="button" class="btn-secondary" onclick="clearLog()">Clear Log</button>
+                <button type="button" class="btn-secondary" onclick="exportLog()">Export Log</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        console.log('CreditCardAutofillDemo loaded');
+        
+        // State tracking
+        window.demoState = {
+            autofillSupported: false,
+            eventFired: false,
+            eventData: null,
+            autofillEvents: [],
+            cardType: null,
+            refillCalled: false,
+            refillResolved: false,
+            autofillCompleted: false,
+            formModified: false,
+            errors: [],
+            logs: [],
+            startTime: Date.now()
+        };
+
+        // Card type detection based on number patterns
+        const cardPatterns = {
+            visa: /^4/,
+            mastercard: /^5[1-5]|^2[2-7]/,
+            amex: /^3[47]/,
+            discover: /^6(?:011|5)/,
+            diners: /^3(?:0[0-5]|[68])/,
+            jcb: /^(?:2131|1800|35)/,
+            unionpay: /^62/
+        };
+
+        function detectCardType(number) {
+            const cleanNumber = number.replace(/\D/g, '');
+            for (const [type, pattern] of Object.entries(cardPatterns)) {
+                if (pattern.test(cleanNumber)) {
+                    return type;
+                }
+            }
+            return null;
+        }
+
+        function getCardBrandDisplay(type) {
+            const brands = {
+                visa: 'VISA',
+                mastercard: 'MC',
+                amex: 'AMEX',
+                discover: 'DISC',
+                diners: 'DC',
+                jcb: 'JCB',
+                unionpay: 'UP'
+            };
+            return brands[type] || 'CARD';
+        }
+
+        // Update card preview
+        function updateCardPreview() {
+            const nameInput = document.getElementById('cc-name');
+            const numberInput = document.getElementById('cc-number');
+            const expInput = document.getElementById('cc-exp');
+
+            const nameDisplay = document.getElementById('card-holder-display');
+            const numberDisplay = document.getElementById('card-number-display');
+            const expiryDisplay = document.getElementById('card-expiry-display');
+            const brandDisplay = document.getElementById('card-brand');
+
+            nameDisplay.textContent = nameInput.value.toUpperCase() || 'YOUR NAME';
+            
+            const number = numberInput.value.replace(/\D/g, '');
+            if (number) {
+                // Show last 4 digits, mask the rest
+                const masked = '•••• •••• •••• ' + (number.slice(-4) || '••••');
+                numberDisplay.textContent = masked;
+            } else {
+                numberDisplay.textContent = '•••• •••• •••• ••••';
+            }
+
+            expiryDisplay.textContent = expInput.value || 'MM/YY';
+
+            const cardType = detectCardType(numberInput.value);
+            brandDisplay.textContent = getCardBrandDisplay(cardType);
+
+            // Update card gradient based on type
+            const preview = document.getElementById('card-preview');
+            const gradients = {
+                visa: 'linear-gradient(135deg, #1a1f71 0%, #00579f 100%)',
+                mastercard: 'linear-gradient(135deg, #eb001b 0%, #f79e1b 100%)',
+                amex: 'linear-gradient(135deg, #006fcf 0%, #00a7e1 100%)',
+                discover: 'linear-gradient(135deg, #ff6000 0%, #ffb300 100%)',
+                diners: 'linear-gradient(135deg, #0079be 0%, #00a1e4 100%)',
+                jcb: 'linear-gradient(135deg, #0e4c96 0%, #bc0c2e 100%)',
+                unionpay: 'linear-gradient(135deg, #e21836 0%, #00447c 100%)'
+            };
+            preview.style.background = gradients[cardType] || 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f97316 100%)';
+        }
+
+        // Logging functionality
+        function log(type, message, data = null) {
+            const timestamp = new Date().toLocaleTimeString();
+            const entry = {
+                timestamp,
+                type,
+                message,
+                data,
+                time: Date.now() - window.demoState.startTime
+            };
+            
+            window.demoState.logs.push(entry);
+            
+            const logContainer = document.getElementById('log-container');
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-entry';
+            
+            let logClass = 'log-event';
+            if (type === 'error') logClass = 'log-error';
+            else if (type === 'success') logClass = 'log-success';
+            
+            logEntry.innerHTML = `
+                <div class="log-timestamp">[${timestamp}] (+${entry.time}ms)</div>
+                <div class="${logClass}">${message}</div>
+                ${data ? `<div class="log-data">${JSON.stringify(data, null, 2)}</div>` : ''}
+            `;
+            
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        function updateStateDisplay() {
+            const supportIndicator = document.getElementById('support-indicator');
+            if (window.demoState.autofillSupported) {
+                supportIndicator.textContent = 'Supported';
+                supportIndicator.className = 'status-indicator status-success';
+            } else {
+                supportIndicator.textContent = 'Not Supported';
+                supportIndicator.className = 'status-indicator status-error';
+            }
+            
+            document.getElementById('state-event-fired').textContent = window.demoState.eventFired;
+            
+            const fieldDataElement = document.getElementById('state-field-data');
+            if (window.demoState.autofillEvents.length === 0) {
+                fieldDataElement.textContent = '0 fields';
+            } else {
+                const summary = window.demoState.autofillEvents
+                    .map((count, index) => `Event ${index + 1}: ${count} field${count !== 1 ? 's' : ''}`)
+                    .join(', ');
+                fieldDataElement.innerHTML = `<div style="font-size: 0.8rem; line-height: 1.4;">${summary}</div>`;
+            }
+
+            document.getElementById('state-card-type').textContent = window.demoState.cardType 
+                ? getCardBrandDisplay(window.demoState.cardType).toUpperCase() 
+                : '—';
+            document.getElementById('state-refill-called').textContent = window.demoState.refillCalled;
+            document.getElementById('state-refill-resolved').textContent = window.demoState.refillResolved;
+            document.getElementById('state-form-modified').textContent = window.demoState.formModified;
+            document.getElementById('state-autofill-completed').textContent = window.demoState.autofillCompleted;
+        }
+
+        // Main autofill event handler
+        async function handleAutofillEvent(event) {
+            if(!('AutofillEvent' in window)) return;
+            
+            log('event', '💳 Credit Card Autofill event fired!');
+            window.demoState.eventFired = true;
+
+            try {
+                log('info', '🔍 Event object keys:', Object.keys(event));
+                log('info', '🔍 Event type:', event.type);
+                
+                const values = event.autofillValues;
+                
+                log('info', '🔍 autofillValues returned:', {
+                    type: typeof values,
+                    isArray: Array.isArray(values),
+                    constructor: values?.constructor?.name
+                });
+                
+                if (!values) {
+                    log('error', '❌ event.autofillValues returned undefined');
+                    return;
+                }
+                
+                window.demoState.eventData = values;
+                
+                let valuesArray;
+                try {
+                    if (Array.isArray(values)) {
+                        valuesArray = values;
+                    } else if (values[Symbol.iterator]) {
+                        valuesArray = Array.from(values);
+                    } else if (typeof values === 'object') {
+                        valuesArray = Object.entries(values);
+                    } else {
+                        log('error', '❌ Cannot convert values to array');
+                        return;
+                    }
+                } catch (e) {
+                    log('error', '❌ Error converting values:', e.toString());
+                    return;
+                }
+                
+                // Log field information
+                const fieldInfo = valuesArray.map((item) => {
+                    if (Array.isArray(item) && item.length >= 2) {
+                        const [element, value] = item;
+                        return { 
+                            id: element?.id,
+                            name: element?.name,
+                            autocomplete: element?.autocomplete,
+                            value: value?.substring(0, 4) + '****' // Mask card data
+                        };
+                    } else if (item && typeof item === 'object' && 'field' in item) {
+                        const field = item.field;
+                        const val = item.value || '';
+                        // Mask sensitive data in logs
+                        let maskedValue = val;
+                        if (field?.autocomplete === 'cc-number') {
+                            maskedValue = '****' + val.slice(-4);
+                        } else if (field?.autocomplete === 'cc-csc') {
+                            maskedValue = '***';
+                        }
+                        return {
+                            id: field?.id,
+                            name: field?.name,
+                            autocomplete: field?.autocomplete,
+                            value: maskedValue
+                        };
+                    }
+                    return { raw: 'unknown format' };
+                });
+                
+                window.demoState.autofillEvents.push(valuesArray.length);
+                log('info', `📋 Received ${valuesArray.length} credit card fields`, fieldInfo);
+
+                // Detect card type from card number
+                let detectedCardNumber = null;
+                
+                for (const item of valuesArray) {
+                    let element, value;
+                    
+                    if (Array.isArray(item) && item.length >= 2) {
+                        [element, value] = item;
+                    } else if (item && typeof item === 'object' && 'field' in item) {
+                        element = item.field;
+                        value = item.value;
+                    }
+                    
+                    if (element && value) {
+                        if (element.autocomplete === 'cc-number') {
+                            detectedCardNumber = value;
+                        }
+                    }
+                }
+                
+                // If we have a card number, detect the type and potentially modify the form
+                if (detectedCardNumber && event.refill !== null) {
+                    const cardType = detectCardType(detectedCardNumber);
+                    
+                    if (cardType) {
+                        window.demoState.cardType = cardType;
+                        log('success', `💳 Card type detected: ${getCardBrandDisplay(cardType)}`);
+                        
+                        // Show card type selector and set it
+                        const cardTypeGroup = document.getElementById('card-type-group');
+                        const cardTypeSelect = document.getElementById('cc-type');
+                        
+                        if (cardTypeGroup.style.display === 'none') {
+                            cardTypeGroup.style.display = 'block';
+                            cardTypeSelect.value = cardType;
+                            window.demoState.formModified = true;
+                            log('info', '🔧 Card type field revealed and populated');
+                        }
+                        
+                        // For American Express, show billing address section (demo of dynamic form modification)
+                        if (cardType === 'amex') {
+                            const billingSection = document.getElementById('billing-section');
+                            if (billingSection.style.display === 'none') {
+                                billingSection.style.display = 'block';
+                                window.demoState.formModified = true;
+                                log('info', '🏠 Billing address section added for AMEX card');
+                                
+                                // Call refill to fill the new billing fields
+                                window.demoState.refillCalled = true;
+                                updateStateDisplay();
+                                log('info', '📞 Calling refill() to populate billing address...');
+                                
+                                await event.refill();
+                                
+                                window.demoState.refillResolved = true;
+                                log('success', '✅ refill() completed');
+                            }
+                        }
+                    }
+                } else if (event.refill === null) {
+                    log('info', '🔄 This is a refill event (refill is null)');
+                }
+                
+            } catch (error) {
+                log('error', '❌ Error in autofill handler', error.toString());
+                window.demoState.errors.push(error.toString());
+            }
+            
+            updateStateDisplay();
+            updateCardPreview();
+        }
+
+        // Monitor form changes
+        document.getElementById('paymentform').addEventListener('input', function(e) {
+            updateCardPreview();
+            
+            if (window.demoState.eventFired && !window.demoState.autofillCompleted) {
+                window.demoState.autofillCompleted = true;
+                log('success', '🎉 Credit card autofill completed!');
+                
+                // Highlight autofilled fields
+                const form = document.getElementById('paymentform');
+                const inputs = form.querySelectorAll('input[type="text"], input[type="tel"]');
+                inputs.forEach(input => {
+                    if (input.value && !input.classList.contains('modified-by-event')) {
+                        input.classList.add('autofilled');
+                    }
+                });
+                
+                // Show CVV status
+                const cvvStatus = document.getElementById('cvv-status');
+                const cvvInput = document.getElementById('cc-csc');
+                if (!cvvInput.value) {
+                    cvvStatus.style.display = 'inline-block';
+                    log('info', '🔒 CVV not autofilled (browser security policy)');
+                }
+                
+                updateStateDisplay();
+            }
+        });
+
+        // Reset handler
+        document.getElementById('paymentform').addEventListener('reset', function() {
+            setTimeout(() => {
+                clearVisualIndicators();
+                updateCardPreview();
+                log('info', '🔄 Form reset');
+            }, 10);
+        });
+
+        function clearVisualIndicators() {
+            const form = document.getElementById('paymentform');
+            const inputs = form.querySelectorAll('input, select');
+            inputs.forEach(input => {
+                input.classList.remove('autofilled');
+            });
+            
+            // Hide dynamically shown elements
+            document.getElementById('card-type-group').style.display = 'none';
+            document.getElementById('billing-section').style.display = 'none';
+            document.getElementById('cvv-status').style.display = 'none';
+        }
+
+        function clearEverything() {
+            document.getElementById('paymentform').reset();
+            clearVisualIndicators();
+            updateCardPreview();
+            
+            const autofillSupported = window.demoState.autofillSupported;
+            window.demoState = {
+                autofillSupported,
+                eventFired: false,
+                eventData: null,
+                autofillEvents: [],
+                cardType: null,
+                refillCalled: false,
+                refillResolved: false,
+                autofillCompleted: false,
+                formModified: false,
+                errors: [],
+                logs: [],
+                startTime: Date.now()
+            };
+            
+            clearLog();
+            updateStateDisplay();
+            log('info', '🧹 Everything cleared');
+        }
+
+        function clearLog() {
+            const logContainer = document.getElementById('log-container');
+            logContainer.innerHTML = '<div class="log-entry"><div class="log-timestamp">[Ready]</div><div class="log-event">Log cleared. Ready for new events...</div></div>';
+            window.demoState.logs = [];
+        }
+
+        function exportLog() {
+            const logData = {
+                timestamp: new Date().toISOString(),
+                state: { ...window.demoState, eventData: '[REDACTED]' },
+                userAgent: navigator.userAgent
+            };
+            
+            const blob = new Blob([JSON.stringify(logData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `cc-autofill-log-${Date.now()}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            log('info', '📁 Log exported');
+        }
+
+        function checkAutofillSupport() {
+            const isSupported = typeof window.AutofillEvent !== 'undefined';
+            window.demoState.autofillSupported = isSupported;
+            
+            if (isSupported) {
+                log('success', '✅ AutofillEvent is supported');
+            } else {
+                log('warning', '⚠️ AutofillEvent not supported in this browser');
+            }
+            
+            return isSupported;
+        }
+
+        // Initialize
+        checkAutofillSupport();
+        updateStateDisplay();
+        updateCardPreview();
+        
+        // Add autofill event listener
+        document.addEventListener('autofill', handleAutofillEvent);
+        log('info', '🎧 Autofill event listener registered');
+        log('info', '🚀 Credit Card Autofill Demo ready');
+
+        // Add input listeners for live card preview
+        ['cc-name', 'cc-number', 'cc-exp'].forEach(id => {
+            document.getElementById(id).addEventListener('input', updateCardPreview);
+        });
+    </script>
+</body>
+</html>
+
